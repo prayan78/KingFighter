@@ -1,0 +1,17 @@
+import { useState } from 'react'
+import { Link2, Radio, Swords, X } from 'lucide-react'
+import type { HeroId } from './combat'
+import type { OnlineSocket } from './network'
+
+type Props = { socket: OnlineSocket; heroId: HeroId; rating: number; status: string; roomCode: string; playersReady: boolean[]; side: number | null; opponent: string | null; onClose: () => void }
+export function OnlineLobby({ socket, heroId, rating, status, roomCode, playersReady, side, opponent, onClose }: Props) {
+  const [code, setCode] = useState('')
+  const [error, setError] = useState('')
+  const emit = (event: string, payload: unknown) => socket.emit(event, payload, (reply: { error?: string }) => { if (reply?.error) setError(reply.error); else setError('') })
+  const found = side !== null
+  return <div className="account-overlay online-overlay"><section className="account-panel online-panel"><button className="account-close" onClick={onClose} aria-label="Close online menu"><X size={18}/></button><div className="account-kicker"><Radio size={15}/> RANKED ONLINE ARENA · 1V1</div><h2>{found ? 'DUEL ROOM' : 'FIND A RIVAL'}</h2><p className="account-sub">Season MMR: {rating}. Public matchmaking is ranked; private invite rooms are unranked scrims. Server simulation runs at 60 fixed steps per second.</p>
+    {status==='connecting'&&<div className="online-status">CONNECTING TO MATCH SERVER…</div>}
+    {status==='disconnected'&&<div className="online-error">Connection lost. Socket.IO will reconnect automatically.</div>}
+    {!found ? <><button className="account-submit online-action" onClick={() => emit('matchmaking:join',{heroId})} disabled={status!=='connected'}><Swords size={15}/> FIND MATCH</button><div className="online-divider"><span>OR MAKE A PRIVATE ROOM</span></div><button className="account-submit secondary online-action" onClick={() => emit('room:create',{heroId})} disabled={status!=='connected'}><Link2 size={15}/> CREATE INVITE CODE</button><form className="online-join" onSubmit={(event)=>{event.preventDefault();emit('room:join',{code:code.toUpperCase(),heroId})}}><input aria-label="Private room code" placeholder="6-CHARACTER CODE" maxLength={6} value={code} onChange={(event)=>setCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g,''))}/><button disabled={code.length!==6||status!=='connected'}>JOIN</button></form>{roomCode&&<div className="online-code"><span>SHARE THIS PRIVATE CODE</span><b>{roomCode}</b></div>}{status==='waiting'&&<div className="online-status">WAITING FOR AN OPPONENT…</div>}{status==='waiting'&&<button className="online-cancel" onClick={()=>socket.emit('room:leave')}>CANCEL SEARCH</button>}</> : <><div className="online-opponent"><span>YOUR OPPONENT</span><b>{opponent ?? 'Rival found'}</b><small>Heroes lock in when both players are ready.</small></div><div className="readiness-row">{playersReady.map((ready,index)=><span key={index} className={ready?'ready':''}>PLAYER {index+1}<b>{ready?'READY':'NOT READY'}</b></span>)}</div><button className="account-submit online-action" onClick={()=>emit('player:ready',{ready:!(playersReady[side]??false)})}>{playersReady[side]?'CANCEL READY':'READY UP'}</button><button className="online-cancel" onClick={()=>socket.emit('room:leave')}>LEAVE ROOM</button></>}
+    {error&&<div className="account-error" role="alert">{error}</div>}<small className="account-guest-note">{status==='connected'?'Authenticated with your KingFighter account.':'Online play requires a signed-in account.'}</small></section></div>
+}

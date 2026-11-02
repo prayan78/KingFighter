@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KingFighter</string>
+    <string name="title_activity_main">KingFighter</string>
+    <string name="package_name">com.kingfighter.arena</string>
+    <string name="custom_url_scheme">com.kingfighter.arena</string>
+</resources>
